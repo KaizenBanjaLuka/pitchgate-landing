@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitchgate — BD Infrastructure for Crypto</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080A0F;
+    --surface: #0E1118;
+    --surface2: #141820;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.15);
+    --accent: #E8FF47;
+    --accent2: #47FFCA;
+    --text: #F0F2F7;
+    --muted: #6B7280;
+    --muted2: #9CA3AF;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    background: rgba(8,10,15,0.7);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 16px; height: 16px; }
+
+  .nav-badge {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 100px;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    text-align: center;
+  }
+
+  /* Glows */
+  .glow-1 {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(232,255,71,0.08) 0%, transparent 70%);
+    top: 10%; left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .glow-2 {
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(71,255,202,0.05) 0%, transparent 70%);
+    bottom: 20%; right: 10%;
+    pointer-events: none;
+  }
+
+  /* Grid background */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black, transparent);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(232,255,71,0.25);
+    background: rgba(232,255,71,0.05);
+    padding: 8px 16px;
+    border-radius: 100px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .eyebrow-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(44px, 7vw, 88px);
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    max-width: 900px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  h1 .line-accent {
+    color: var(--accent);
+    display: block;
+  }
+
+  h1 .line-dim {
+    color: var(--muted2);
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--muted2);
+    max-width: 520px;
+    margin-bottom: 56px;
+    font-weight: 300;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  /* WAITLIST FORM */
+  .waitlist-form {
+    display: flex;
+    gap: 0;
+    max-width: 480px;
+    width: 100%;
+    border: 1px solid var(--border-bright);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    animation: fadeUp 0.6s 0.3s ease both;
+    transition: border-color 0.2s;
+  }
+
+  .waitlist-form:focus-within {
+    border-color: rgba(232,255,71,0.4);
+    box-shadow: 0 0 0 4px rgba(232,255,71,0.06);
+  }
+
+  .waitlist-form input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 16px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    min-width: 0;
+  }
+
+  .waitlist-form input::placeholder { color: var(--muted); }
+
+  .waitlist-form button {
+    background: var(--accent);
+    color: #080A0F;
+    border: none;
+    padding: 16px 24px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+    text-transform: uppercase;
+  }
+
+  .waitlist-form button:hover { background: #f0ff60; }
+  .waitlist-form button:active { transform: scale(0.98); }
+
+  .waitlist-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 14px;
+    letter-spacing: 0.04em;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  .success-msg {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    color: var(--accent);
+    font-size: 14px;
+    padding: 16px 24px;
+    border: 1px solid rgba(232,255,71,0.3);
+    border-radius: 12px;
+    background: rgba(232,255,71,0.05);
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: flex;
+    gap: 48px;
+    margin-top: 80px;
+    padding-top: 48px;
+    border-top: 1px solid var(--border);
+    animation: fadeUp 0.6s 0.5s ease both;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* PROBLEMS SECTION */
+  .section {
+    padding: 100px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 60px;
+    max-width: 600px;
+  }
+
+  .section-title span { color: var(--muted); }
+
+  /* PAIN CARDS */
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .pain-card {
+    background: var(--surface);
+    padding: 36px 32px;
+    transition: background 0.2s;
+    position: relative;
+  }
+
+  .pain-card:hover { background: var(--surface2); }
+
+  .pain-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+    font-size: 18px;
+  }
+
+  .pain-icon.yellow { background: rgba(232,255,71,0.1); }
+  .pain-icon.teal { background: rgba(71,255,202,0.1); }
+  .pain-icon.red { background: rgba(255,100,100,0.1); }
+  .pain-icon.blue { background: rgba(100,150,255,0.1); }
+
+  .pain-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .pain-desc {
+    font-size: 13px;
+    color: var(--muted2);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* HOW IT WORKS */
+  .how-section {
+    padding: 100px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .how-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2px;
+    margin-top: 60px;
+    position: relative;
+  }
+
+  .step {
+    padding: 36px 28px;
+    background: var(--bg);
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .step-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 48px;
+    color: rgba(255,255,255,0.04);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: var(--muted2);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .step-tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+  }
+
+  .step-tag.intent { background: rgba(232,255,71,0.1); color: var(--accent); }
+  .step-tag.direct { background: rgba(71,255,202,0.1); color: var(--accent2); }
+  .step-tag.verified { background: rgba(255,255,255,0.07); color: var(--muted2); }
+
+  /* FOR WHO */
+  .for-section {
+    padding: 100px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 60px;
+  }
+
+  .persona-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 28px;
+    background: var(--surface);
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .persona-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-2px);
+  }
+
+  .persona-role {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .persona-company {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .persona-need {
+    font-size: 13px;
+    color: var(--muted2);
+    line-height: 1.7;
+    font-weight: 300;
+    border-left: 2px solid var(--border-bright);
+    padding-left: 14px;
+    font-style: italic;
+  }
+
+  /* CTA SECTION */
+  .cta-section {
+    padding: 120px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(232,255,71,0.06) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 5vw, 60px);
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+    line-height: 1.05;
+  }
+
+  .cta-sub {
+    font-size: 15px;
+    color: var(--muted2);
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  footer .logo { font-size: 14px; }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+  }
+
+  .footer-links a {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  .footer-copy {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* TERMINAL WIDGET */
+  .terminal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    margin: 60px auto 0;
+    text-align: left;
+    font-size: 13px;
+    line-height: 1.8;
+    animation: fadeUp 0.6s 0.35s ease both;
+  }
+
+  .terminal-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .terminal-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .t-red { background: #FF5F57; }
+  .t-yellow { background: #FFBD2E; }
+  .t-green { background: #28CA41; }
+
+  .t-line { color: var(--muted2); }
+  .t-key { color: var(--accent); }
+  .t-val { color: var(--accent2); }
+  .t-comment { color: var(--muted); }
+  .t-cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: var(--accent);
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (max-width: 600px) {
+    nav { padding: 16px 24px; }
+    .waitlist-form { flex-direction: column; border-radius: 12px; }
+    .waitlist-form button { border-radius: 0 0 10px 10px; }
+    footer { padding: 24px; flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M2 4h8M2 8h12M2 12h6" stroke="#080A0F" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    Pitchgate
+  </div>
+  <div class="nav-badge">Early Access</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="grid-bg"></div>
+  <div class="glow-1"></div>
+  <div class="glow-2"></div>
+
+  <div class="eyebrow">
+    <span class="eyebrow-dot"></span>
+    BD Infrastructure for Crypto
+  </div>
+
+  <h1>
+    <span class="line-dim">Stop cold DMing.</span>
+    <span class="line-accent">Start closing.</span>
+  </h1>
+
+  <p class="hero-sub">
+    The verified BD network for web3. Post intents, reach the right teams, and get deals into the right inboxes — without the noise.
+  </p>
+
+  <div id="waitlist-wrap">
+    <div class="waitlist-form">
+      <input type="email" id="email-input" placeholder="your@protocol.xyz" autocomplete="email" />
+      <button onclick="handleSubmit()">Join Waitlist</button>
+    </div>
+  </div>
+  <div class="success-msg" id="success-msg">
+    <span style="color:var(--accent)">✓</span> You're on the list — we'll be in touch.
+  </div>
+  <p class="waitlist-note">No spam. Early access to verified BD reps & protocols.</p>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="terminal-dot t-red"></div>
+      <div class="terminal-dot t-yellow"></div>
+      <div class="terminal-dot t-green"></div>
+    </div>
+    <div class="t-line"><span class="t-comment">// bd_intent.post()</span></div>
+    <div class="t-line"><span class="t-key">intent</span>: <span class="t-val">"Looking for onramp partner"</span></div>
+    <div class="t-line"><span class="t-key">chain</span>: <span class="t-val">["EVM", "Solana"]</span></div>
+    <div class="t-line"><span class="t-key">deal_type</span>: <span class="t-val">"Revenue share"</span></div>
+    <div class="t-line"><span class="t-key">status</span>: <span style="color:#28CA41">"resolving..."</span> <span class="t-cursor"></span></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-value">3 min</div>
+      <div class="stat-label">avg. to post an intent</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">1×</div>
+      <div class="stat-label">per target per 3 months</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">0</div>
+      <div class="stat-label">cold DMs needed</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="section">
+  <div class="section-label reveal">The Problem</div>
+  <h2 class="section-title reveal">BD in crypto is <span>still stuck in 2018</span></h2>
+
+  <div class="pain-grid reveal">
+    <div class="pain-card">
+      <div class="pain-icon yellow">🔒</div>
+      <div class="pain-title">Can't get through</div>
+      <div class="pain-desc">The BD rep at the protocol you need is unreachable. No verified contact, no inbox — just a Twitter DM black hole.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon red">📨</div>
+      <div class="pain-title">Drowning in spam</div>
+      <div class="pain-desc">Your DMs are flooded with irrelevant, unvetted partnership requests. Real deals get buried in the noise.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon teal">🔍</div>
+      <div class="pain-title">Don't know who exists</div>
+      <div class="pain-desc">New protocols don't know which providers to use for swaps, onramps, or liquidity. There's no structured directory.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon blue">⏱️</div>
+      <div class="pain-title">Deals die slowly</div>
+      <div class="pain-desc">You finally connect — then months pass. No structure, no accountability, no shared context to move a deal forward.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div class="how-section">
+  <div class="how-inner">
+    <div class="section-label reveal">How it works</div>
+    <h2 class="section-title reveal">Two ways to <span>find your next deal</span></h2>
+
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-tag intent">BD Intents</div>
+        <div class="step-title">Post what you need</div>
+        <div class="step-desc">Write your intent in plain language. Our AI resolves it against active protocols and surfaces the best matches — ranked, not just filtered.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-tag direct">Direct Outreach</div>
+        <div class="step-title">Target a specific project</div>
+        <div class="step-desc">Know exactly who you want? Send a structured offer directly to their verified inbox. Rate-limited to once per 3 months — so every offer carries weight.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-tag verified">Verified Match</div>
+        <div class="step-title">Both sides accept</div>
+        <div class="step-desc">Contact details only unlock after mutual interest. No cold exposure. No spam. Just warm, consent-based connections.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-tag intent">Close</div>
+        <div class="step-title">Take it from there</div>
+        <div class="step-desc">Pitchgate gets you to the conversation. What you do in it is on you. We just make sure you're talking to the right person.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOR WHO -->
+<section class="for-section">
+  <div class="section-label reveal">Who it's for</div>
+  <h2 class="section-title reveal">Built for every <span>corner of crypto BD</span></h2>
+
+  <div class="persona-grid reveal">
+    <div class="persona-card">
+      <div class="persona-role">BD Representative</div>
+      <div class="persona-company">DeFi Protocol</div>
+      <div class="persona-need">"I've been trying to reach the BD lead at MoonPay for 3 weeks. Nobody responds to cold DMs anymore."</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-role">Partnerships Lead</div>
+      <div class="persona-company">L2 / Infrastructure</div>
+      <div class="persona-need">"We get 50 partnership requests a week. I need a way to filter signal from noise without missing real opportunities."</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-role">Founder / BD</div>
+      <div class="persona-company">Early Stage Protocol</div>
+      <div class="persona-need">"We need a swap integration and an onramp partner but we don't even know who the right providers are."</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-role">BD Consultant</div>
+      <div class="persona-company">Freelance / Multi-client</div>
+      <div class="persona-need">"I work across 4 projects and need one place to manage outreach, track intents, and not miss incoming requests."</div>
+    </div>
+  </div>
+</section>
+
+<!-- BOTTOM CTA -->
+<section class="cta-section">
+  <div class="section-label reveal" style="display:inline-block">Early Access</div>
+  <h2 class="cta-title reveal">The BD layer<br>crypto is missing.</h2>
+  <p class="cta-sub reveal">Join the waitlist. First 100 projects get verified free.</p>
+
+  <div id="waitlist-wrap-2" class="reveal">
+    <div class="waitlist-form" style="margin: 0 auto;">
+      <input type="email" id="email-input-2" placeholder="your@protocol.xyz" autocomplete="email" />
+      <button onclick="handleSubmit2()">Get Early Access</button>
+    </div>
+  </div>
+  <div class="success-msg" id="success-msg-2" style="display:none; justify-content:center; margin-top:16px;">
+    <span style="color:var(--accent)">✓</span> You're on the list — we'll be in touch.
+  </div>
+  <p class="waitlist-note reveal" style="margin-top:14px;">pitchgate.xyz &nbsp;·&nbsp; @pitchgatexyz</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M2 4h8M2 8h12M2 12h6" stroke="#080A0F" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    Pitchgate
+  </div>
+  <div class="footer-links">
+    <a href="#">Twitter</a>
+    <a href="#">Contact</a>
+  </div>
+  <div class="footer-copy">© 2025 Pitchgate. All rights reserved.</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 60);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Form handlers
+  function handleSubmit() {
+    const email = document.getElementById('email-input').value;
+    if (!email || !email.includes('@')) {
+      document.getElementById('email-input').style.borderBottom = '1px solid red';
+      return;
+    }
+    document.getElementById('waitlist-wrap').style.display = 'none';
+    const msg = document.getElementById('success-msg');
+    msg.style.display = 'flex';
+    msg.style.justifyContent = 'center';
+  }
+
+  function handleSubmit2() {
+    const email = document.getElementById('email-input-2').value;
+    if (!email || !email.includes('@')) return;
+    document.getElementById('waitlist-wrap-2').style.display = 'none';
+    const msg = document.getElementById('success-msg-2');
+    msg.style.display = 'flex';
+  }
+
+  // Enter key support
+  document.getElementById('email-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit();
+  });
+  document.getElementById('email-input-2').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit2();
+  });
+</script>
+</body>
+</html>
